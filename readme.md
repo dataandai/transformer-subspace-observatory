@@ -1,670 +1,630 @@
-# Tiny Qwen Subspace Observatory
+# Transformer Subspace Observatory
 
-## Spectral Geometry, Subspace Dynamics, ICA, and Representation Evolution in Transformer Training
+**Reproducible diagnostics for comparing spectral, subspace, and activation-space dynamics during small Transformer training runs.**
 
----
+This repository is an engineering playground for observing how different optimizers shape the internal geometry of a compact Transformer during training.
 
-# Overview
+The main motivation is simple:
 
-Tiny Qwen Subspace Observatory is an experimental research platform for studying how internal representations emerge, evolve, stabilize, reorganize, and interact during Transformer training.
+> Run the same small Transformer setup with AdamW and Muon, log internal geometry, and compare what changes.
 
-Most language model research focuses on metrics such as:
-
-* training loss
-* validation loss
-* perplexity
-* downstream task performance
-
-While these metrics answer the question:
-
-> "How well is the model performing?"
-
-they reveal very little about:
-
-> "What internal structures are being created during learning?"
-
-This repository addresses that gap.
-
-Instead of treating training as a sequence of scalar optimization steps, we analyze training as a process of geometric self-organization.
-
-The observatory continuously monitors:
-
-* singular value spectra
-* stable rank evolution
-* effective dimensionality
-* subspace formation
-* subspace stabilization
-* spectral transitions
-* Independent Component Analysis (ICA)
-* cross-layer feature organization
-* component lifetimes
-* component superposition
-* optimizer-induced geometric biases
-
-The result is a framework that allows researchers to observe how a Transformer gradually constructs its internal representation geometry.
+This is not intended to be a benchmark paper, a mechanistic interpretability proof, or a claim that one optimizer is universally better than another. It is a reproducible measurement harness for generating hypotheses about optimizer-induced representation dynamics.
 
 ---
 
-# Core Research Questions
+## What this is
 
-The project is built around several fundamental questions:
+Transformer training is usually monitored through scalar metrics such as:
 
-### When do useful internal structures appear?
+- training loss
+- validation loss
+- perplexity
+- downstream task performance
 
-Do representations emerge gradually?
+Those metrics are useful, but they do not show much about how the model's internal matrices and activation spaces change during training.
 
-Or do they appear through discrete reorganization events?
+This repository adds a second view: geometry-first diagnostics.
 
----
+It tracks:
 
-### When do representations stabilize?
+- singular value spectra
+- stable rank
+- effective rank
+- top-k spectral energy
+- Grassmann subspace drift
+- thresholded subspace events
+- ICA-derived activation components
+- component persistence across checkpoints
+- neuron-level superposition proxies
+- optimizer-induced differences between AdamW and Muon
 
-Does representation convergence occur at the same time as loss convergence?
-
-Or do internal geometries stabilize long before optimization finishes?
-
----
-
-### How do different optimizers shape geometry?
-
-Do AdamW and Muon learn the same internal structures?
-
-Or do they create fundamentally different geometric organizations?
-
----
-
-### Can activation subspaces be observed directly?
-
-Can we identify independent computational networks inside the model?
-
-Can we track their birth, growth, stabilization, and disappearance?
+The goal is to make these measurements easy to reproduce, compare, and extend.
 
 ---
 
-# Main Hypothesis
+## What this is not
 
-The central hypothesis of this project is:
+This repository does **not** claim that:
 
-[
-\text{Feature Discovery}
-\rightarrow
-\text{Subspace Formation}
-\rightarrow
-\text{Subspace Stabilization}
-\rightarrow
-\text{Weight Refinement}
-]
+- ICA components are proven circuits
+- subspace events are proven feature births
+- Muon is universally better than AdamW
+- geometric metrics are better objectives than validation loss
+- the observed effects are statistically robust across all seeds, model sizes, or datasets
 
-This differs from the conventional optimization-centric view.
-
-We hypothesize that:
-
-[
-\text{Subspace Convergence}
-<
-\text{Loss Convergence}
-]
-
-meaning that the geometric structure of the model stabilizes before the optimization process is complete.
+The outputs should be treated as diagnostic signals and exploratory evidence, not final mechanistic explanations.
 
 ---
 
-# Model Architecture
+## Main use case
 
-The repository uses a compact Qwen-style decoder-only Transformer.
+The intended workflow is:
 
-Configuration:
+1. Train a compact Qwen-style decoder-only Transformer.
+2. Run the same configuration with different optimizers, especially AdamW and Muon.
+3. Save checkpoints and diagnostic logs.
+4. Compare the internal geometry of the training runs.
+5. Use the results to form hypotheses for better-controlled experiments.
 
-| Parameter      | Value        |
-| -------------- | ------------ |
-| Layers         | 4            |
-| Hidden Size    | 256          |
-| FFN Dimension  | 1024         |
-| Vocabulary     | 30,000       |
-| Dataset        | WikiText-2   |
-| Context Length | Configurable |
-
-The small size allows dense diagnostic instrumentation while remaining computationally practical.
+The project is designed to make small-scale optimizer comparison easy and reproducible.
 
 ---
 
-# Supported Optimizers
+## Core questions
 
-## AdamW
+The repository is built around practical measurement questions:
 
-The standard Transformer baseline.
+### Do AdamW and Muon produce different matrix spectra?
 
-Characteristics:
+For example:
 
-* adaptive learning rates
-* decoupled weight decay
-* strong empirical performance
+- Does one optimizer concentrate energy into fewer singular directions?
+- Does one maintain broader spectral support?
+- Do spectral gaps evolve differently?
 
----
+### Do their dominant subspaces move differently?
 
-## Muon
+For example:
 
-A matrix-aware optimizer based on orthogonalized momentum updates.
+- Do top-k singular subspaces stabilize earlier under one optimizer?
+- Are there periods of rapid subspace drift?
+- Are some layers more geometrically stable than others?
 
-Key ideas:
+### Do their activation spaces differ?
 
-* matrix-valued optimization
-* Newton–Schulz orthogonalization
-* preservation of spectral diversity
-* improved matrix conditioning
+For example:
 
-Muon treats weight matrices as geometric objects rather than collections of independent scalar parameters.
+- Do ICA-derived activation components appear more compact or more distributed?
+- Are components more layer-local or cross-layer?
+- Are component trajectories stable across checkpoints?
 
----
+### Does geometry tell a different story from validation loss?
 
-# Spectral Diagnostics
+The repository is especially interested in cases where validation loss and geometric diagnostics disagree.
 
-## Singular Value Spectrum
-
-For every tracked matrix:
-
-* attention projections
-* FFN up projections
-* FFN gate projections
-* FFN down projections
-
-the singular value decomposition is computed.
-
-[
-W = U \Sigma V^T
-]
-
-Tracked metrics include:
-
-* largest singular value
-* top-k singular values
-* spectral gap
-* cumulative spectral energy
-* effective rank
-
-These measurements provide a direct view of how information becomes distributed across matrix directions.
+That disagreement is not treated as a failure. It is one of the main reasons to measure internal geometry in the first place.
 
 ---
 
-## Stable Rank
+## Model setup
+
+The current experiments use a compact Qwen-style decoder-only Transformer.
+
+Typical configuration:
+
+| Parameter | Value |
+|---|---:|
+| Layers | 4 |
+| Hidden size | 256 |
+| FFN dimension | 1024 |
+| Vocabulary size | 30,000 |
+| Dataset | WikiText-2 |
+| Context length | Configurable |
+
+The model is intentionally small. This makes dense checkpointing and expensive diagnostic analysis practical.
+
+The purpose is not to train a strong language model. The purpose is to create a controlled environment where optimizer-induced geometry can be inspected.
+
+---
+
+## Supported optimizers
+
+### AdamW
+
+AdamW is used as the standard Transformer optimizer baseline.
+
+It provides:
+
+- adaptive learning rates
+- decoupled weight decay
+- a strong and familiar reference point
+
+AdamW is useful here because it gives a conventional baseline for comparing spectral and subspace dynamics.
+
+### Muon
+
+Muon is included as a matrix-aware optimizer based on orthogonalized momentum updates.
+
+In this repository, Muon is interesting because it may affect matrix geometry differently from AdamW.
+
+The comparison is not framed as:
+
+> Muon is better.
+
+It is framed as:
+
+> Muon and AdamW may leave different geometric signatures during training.
+
+The observatory exists to measure those signatures.
+
+---
+
+## Spectral diagnostics
+
+The repository computes singular value diagnostics for tracked Transformer matrices, including:
+
+- attention projection matrices
+- FFN up projections
+- FFN gate projections
+- FFN down projections
+
+For a weight matrix \(W\), the singular value decomposition is:
+
+\[
+W = U \Sigma V^\top
+\]
+
+Tracked quantities include:
+
+- largest singular value
+- top-k singular values
+- spectral gap
+- cumulative spectral energy
+- stable rank
+- effective rank
+
+These diagnostics describe how weight energy is distributed across matrix directions.
+
+---
+
+## Stable rank
 
 Stable rank is defined as:
 
-[
-\text{StableRank}(W)
-====================
+\[
+\mathrm{StableRank}(W) = \frac{\|W\|_F^2}{\|W\|_2^2}
+\]
 
-\frac{|W|_F^2}
-{|W|_2^2}
-]
+It is a soft rank measure.
 
-Unlike algebraic rank, stable rank is robust to noise.
+A lower stable rank means that matrix energy is concentrated in fewer dominant directions.
 
-Interpretation:
+A higher stable rank means that energy is distributed across more directions.
 
-### Low Stable Rank
-
-Energy is concentrated in a small number of dominant directions.
-
-The matrix behaves approximately low-rank.
-
-### High Stable Rank
-
-Energy is distributed across many directions.
-
-The representation utilizes a larger portion of available capacity.
+In this project, stable rank is used as a diagnostic proxy for spectral spread. It should not be interpreted as a direct measure of model quality.
 
 ---
 
-## Top-k Energy
+## Top-k spectral energy
 
-Measures how much matrix energy is concentrated inside the leading singular directions.
+Top-k spectral energy measures how much matrix energy is contained in the leading singular directions:
 
-[
-E_k
-===
+\[
+E_k = \frac{\sum_{i=1}^{k}\sigma_i^2}{\sum_i \sigma_i^2}
+\]
 
-\frac{\sum_{i=1}^{k}\sigma_i^2}
-{\sum_i \sigma_i^2}
-]
+High top-k energy indicates concentration in the leading directions.
 
-High values indicate concentration.
+Lower top-k energy indicates more distributed spectral support.
 
-Low values indicate distributed structure.
+This is useful for comparing whether AdamW and Muon produce different patterns of matrix energy concentration.
 
 ---
 
-# Subspace Dynamics
+## Subspace dynamics
 
-The most important idea in the repository is that singular vectors define evolving geometric subspaces.
+The top-k singular vectors define a low-dimensional subspace.
 
-For the top-k singular vectors:
+For each checkpoint, the repository tracks the movement of these subspaces through training.
 
-[
-U_k
-]
+Given top-k subspaces at two checkpoints:
 
-we track their movement through training.
-
----
-
-## Grassmann Distance
-
-Subspace drift is measured on the Grassmann manifold.
-
-Given two subspaces:
-
-[
+\[
 U_k^{(t)}
-]
+\]
 
 and
 
-[
+\[
 U_k^{(t+\Delta)}
-]
+\]
 
-we compute their principal angles and derive a Grassmann distance.
+the principal angles between them are used to compute a Grassmann-style subspace distance.
 
-Interpretation:
-
-### Small Drift
-
-The representation remains stable.
-
-### Large Drift
-
-The representation is reorganizing.
+This gives a checkpoint-to-checkpoint measure of subspace drift.
 
 ---
 
-## Subspace Stabilization
+## Grassmann drift
 
-A subspace is considered stabilized when drift remains below a threshold for a sustained period.
+Grassmann drift is used as a proxy for how much a dominant singular subspace changes over time.
 
-This creates a notion of:
+Small drift suggests that the tracked subspace is relatively stable.
 
-> geometric convergence
+Large drift suggests that the tracked subspace is changing substantially.
 
-that is separate from loss convergence.
-
----
-
-# Event Detection
-
-The observatory automatically identifies geometric events.
+This does **not** automatically mean that a representation has converged or reorganized in a mechanistic sense. It only means that the measured top-k subspace moved less or more according to the chosen metric.
 
 ---
 
-## Subspace Birth
+## Thresholded subspace events
 
-Previously weak structures become detectable.
+The observatory can flag thresholded events in spectral and subspace trajectories.
+
+Examples include:
+
+### Subspace detection event
+
+A previously weak or noisy tracked subspace becomes measurable under the chosen threshold.
 
 Possible interpretation:
 
-* feature emergence
-* circuit formation
-* specialization
+- a new dominant direction becomes visible
+- spectral mass becomes less diffuse
+- a tracked structure crosses a diagnostic threshold
 
----
+### Spectral separation event
 
-## Spectral Separation
-
-Leading singular directions become significantly stronger than surrounding directions.
+Leading singular directions separate from the surrounding spectrum.
 
 Possible interpretation:
 
-* hierarchy formation
-* dominant feature emergence
+- stronger concentration in top directions
+- emergence of a clearer spectral hierarchy
+- optimizer-dependent spectral organization
 
----
+### Local stabilization event
 
-## Local Stabilization
-
-Subspace motion decreases dramatically.
-
-Possible interpretation:
-
-* convergence of a representation
-
----
-
-## Destabilization Spike
-
-A previously stable subspace suddenly moves.
+Subspace drift remains below a threshold for a sustained period.
 
 Possible interpretation:
 
-* representation restructuring
-* feature recombination
-* optimizer-induced reorganization
+- the tracked top-k subspace has become locally stable
+- the dominant directions are changing more slowly
 
-These events are especially interesting when comparing AdamW and Muon.
+### Destabilization spike
 
----
+A previously stable tracked subspace shows a sudden increase in drift.
 
-# ICA Observatory
+Possible interpretation:
 
-The repository contains a complete Independent Component Analysis framework.
+- a temporary reorganization of dominant directions
+- optimizer- or schedule-induced change
+- checkpoint-level instability
 
-The ICA system is inspired by fMRI analysis.
-
----
-
-## Spatial ICA
-
-For each checkpoint, FFN activations are collected from all Transformer blocks.
-
-Let:
-
-[
-A_l
-]
-
-be the FFN activation matrix from layer (l).
-
-These are concatenated:
-
-[
-X
-=
-
-[A_0 | A_1 | A_2 | A_3]
-]
-
-FastICA is then applied.
-
-The result is a set of independent activation networks.
+These events are diagnostic labels, not proof of underlying causal mechanisms.
 
 ---
 
-## Why ICA?
+## ICA activation observatory
+
+The repository includes an Independent Component Analysis workflow for FFN activations.
+
+For each checkpoint, FFN activations are collected from Transformer blocks and concatenated into a shared activation matrix.
+
+If \(A_l\) is the FFN activation matrix from layer \(l\), the concatenated activation matrix is:
+
+\[
+X = [A_0 \mid A_1 \mid A_2 \mid A_3]
+\]
+
+FastICA is then applied to estimate activation components.
+
+These components are referred to as **ICA-derived activation components**.
+
+They should not be treated as proven circuits. They are exploratory components extracted under ICA assumptions.
+
+---
+
+## Why use ICA?
 
 SVD identifies directions of variance.
 
-ICA attempts to identify independent computational processes.
+ICA attempts to find statistically independent components under a stronger modeling assumption.
 
-This makes ICA particularly suitable for studying:
+In this repository, ICA is used as an exploratory lens on activation space.
 
-* distributed representations
-* feature circuits
-* emergent subnetworks
+It can help ask questions such as:
+
+- Are activation components more local or distributed?
+- Do component counts differ between optimizers?
+- Do similar components persist across checkpoints?
+- Do component trajectories change during training?
+
+The output is useful for exploration, but it requires validation before making mechanistic claims.
 
 ---
 
-## Component Count
+## Component count
 
-The number of ICA components is estimated using:
+The number of ICA components can be estimated using criteria such as:
 
-* explained variance
-* participation ratio
+- explained variance
+- participation ratio
+- diagnostic thresholds
 
 The resulting quantity:
 
-[
-n_{ICA}(t)
-]
+\[
+n_{\mathrm{ICA}}(t)
+\]
 
-acts as a measure of activation complexity.
+is treated as a rough measure of activation-space complexity at checkpoint \(t\).
 
----
-
-## Cross-Layer Bind Index
-
-Measures how strongly a component spans multiple Transformer blocks.
-
-Low values:
-
-* local feature
-
-High values:
-
-* distributed network
-
-This provides evidence for cross-layer computational organization.
+It is not a definitive count of model features.
 
 ---
 
-## Component Lifetime
+## Cross-layer bind index
 
-Components are matched across checkpoints.
+The cross-layer bind index measures how strongly an ICA-derived activation component spans multiple Transformer blocks.
 
-Each component receives:
+Lower values suggest that a component is more layer-local.
 
-* birth time
-* lifetime
-* death time
+Higher values suggest that a component is more distributed across layers.
 
-This allows us to study representation persistence.
+This is useful for comparing whether AdamW and Muon produce different cross-layer activation patterns.
 
 ---
 
-## Component Genealogy (Planned)
+## Component persistence
 
-Future versions will track:
+Components can be matched across checkpoints to estimate persistence over training.
 
-[
-A
-\rightarrow
-A_1 + A_2
-]
+For each matched component, the observatory can track:
 
-component splits
+- first detected checkpoint
+- last detected checkpoint
+- approximate lifetime
+- similarity to components at neighboring checkpoints
 
-and
+This is intended as a temporal diagnostic.
 
-[
-A+B
-\rightarrow
-C
-]
-
-component mergers.
-
-This will create a true evolutionary model of representation dynamics.
+Terms such as "birth" and "death" should be understood as shorthand for thresholded component detection and disappearance, not literal mechanistic events.
 
 ---
 
-# Superposition Analysis
+## Superposition proxy
 
-Modern mechanistic interpretability suggests that many features may share neurons.
+The repository includes neuron-level superposition-style diagnostics.
 
-The observatory measures neuron-level superposition.
+For neuron \(j\), a participation-style score can be computed as:
 
-For neuron (j):
+\[
+S_j = \frac{\left(\sum_i w_{ij}^2\right)^2}{\sum_i w_{ij}^4}
+\]
 
-[
-S_j
-===
+Lower values suggest concentration.
 
-\frac{
-(\sum_i w_{ij}^2)^2
-}
-{
-\sum_i w_{ij}^4
-}
-]
+Higher values suggest broader participation across components or directions.
 
-Interpretation:
-
-Low values:
-
-* specialization
-
-High values:
-
-* feature sharing
-* superposition
+This is a proxy metric. It is useful for comparison, but it should not be overinterpreted as a direct measurement of feature superposition.
 
 ---
 
-# Temporal ICA
+## Temporal component analysis
 
-Spatial ICA answers:
+The repository can also examine how component activity changes over training.
 
-> Where does a component live?
+This is useful for studying whether components:
 
-Temporal ICA answers:
+- appear early or late
+- persist across many checkpoints
+- become more or less layer-distributed
+- differ between AdamW and Muon runs
 
-> When does it become active?
-
-Temporal ICA operates on component trajectories across training.
-
-Potential modes include:
-
-* feature formation
-* feature consolidation
-* memorization
-* refinement
+The purpose is to compare trajectories, not to claim a final theory of representation evolution.
 
 ---
 
-# Token-Level Component Tracing
+## Token-level component tracing
 
-An experimental extension allows component activations to be measured during inference.
+An experimental extension projects token representations onto ICA-derived components during inference.
 
-For token representation:
+For token representation \(h_t\) and component \(c_k\), the component activation is:
 
-[
-h_t
-]
+\[
+a_{k,t} = h_t \cdot c_k
+\]
 
-and ICA component:
+This can be used to visualize how component activity changes across a token sequence.
 
-[
-c_k
-]
+Possible uses include exploratory inspection of:
 
-activation is:
+- domain transitions
+- formatting changes
+- structured versus unstructured text
+- token-level activation patterns
 
-[
-a_{k,t}
-=======
+This feature is experimental and should be interpreted cautiously.
 
-h_t \cdot c_k
-]
+---
 
-This allows visualization of:
+## Current observations
 
-* domain transitions
-* syntax-sensitive features
-* uncertainty responses
-* representation switching
+Initial experiments suggest that, in the tested small-scale setup, AdamW and Muon can produce visibly different geometric diagnostics.
 
-Example:
+Observed differences may include:
 
-```text
-Narrative prose
-      ↓
-Structured JSON
+- different stable-rank trajectories
+- different top-k spectral energy patterns
+- different subspace drift profiles
+- different numbers of ICA-derived activation components
+- different local stabilization patterns
+- geometry/loss disagreement in some runs
+
+These are observations from small experiments.
+
+They should be treated as hypotheses until validated with:
+
+- multiple seeds
+- stronger baselines
+- larger models
+- additional datasets
+- ablations over hyperparameters
+- null or randomized controls
+
+---
+
+## Reproducibility goal
+
+A major goal of the repository is to make optimizer comparison easy to rerun.
+
+The ideal workflow is:
+
+```bash
+# Run an AdamW experiment
+python train.py --optimizer adamw --seed 1 --run-name adamw_seed1
+
+# Run a Muon experiment
+python train.py --optimizer muon --seed 1 --run-name muon_seed1
+
+# Compare diagnostics
+python compare_runs.py \
+  --run-a runs/adamw_seed1 \
+  --run-b runs/muon_seed1 \
+  --metrics stable_rank grassmann_drift topk_energy ica_components
 ```
 
-The transition can become visible directly in component activity maps.
+The exact command interface may evolve, but the intended design is:
+
+- same model
+- same dataset
+- same seed
+- same checkpoint schedule
+- same diagnostics
+- different optimizer
+
+That makes the comparison interpretable and easy to reproduce.
 
 ---
 
-# Main Experimental Findings
+## Suggested interpretation discipline
 
-Current experiments indicate:
+The repository intentionally separates measurements from interpretation.
 
-### Muon Produces Higher Stable Rank
+Recommended wording:
 
-Muon consistently maintains broader spectral support.
+| Instead of saying | Prefer saying |
+|---|---|
+| feature discovery | activation component emergence |
+| circuit formation | ICA-derived component structure |
+| subspace birth | thresholded subspace detection |
+| representation convergence | reduced top-k subspace drift |
+| Muon learns better geometry | Muon produced different geometric diagnostics in this setup |
+| independent computational network | ICA-derived activation component |
+| evolutionary model | checkpoint-wise component tracking |
 
----
-
-### Muon Produces Fewer ICA Components
-
-Activation organization becomes more compact.
-
----
-
-### Muon Stabilizes More Subspaces
-
-A larger fraction of tracked subspaces converge.
+This keeps the project useful without overstating what the diagnostics prove.
 
 ---
 
-### Muon Creates More Coherent Geometric Trajectories
+## Why this repository exists
 
-Training states occupy a smaller number of geometric regimes.
+This project exists because optimizer comparisons often collapse into one scalar question:
 
----
+> Which optimizer gets lower validation loss?
 
-### Better Geometry Does Not Necessarily Mean Better Validation Loss
+That question matters, but it is not the only useful question.
 
-Loss and geometry are distinct objectives.
+This repository asks a different set of engineering questions:
 
-This is one of the central conclusions of the project.
+- What happens to the spectra of the learned matrices?
+- How do dominant subspaces move during training?
+- Do optimizers produce different activation-space decompositions?
+- Are there diagnostic signals that appear before loss differences?
+- Can geometry help debug, compare, or understand training runs?
 
----
+The goal is not to replace loss curves.
 
-# Future Directions
-
-## Multi-Seed Validation
-
-Determine which effects remain statistically robust.
-
----
-
-## Larger Models
-
-Apply the framework to:
-
-* Qwen 0.5B
-* Qwen 1.5B
-* Llama-family models
+The goal is to put more instruments on the training process.
 
 ---
 
-## Component Genealogy
+## Future directions
 
-Track births, deaths, splits, and mergers of computational components.
+### Multi-seed validation
+
+Run the same comparison across multiple seeds to determine which effects are stable and which are run-specific.
+
+### Larger models
+
+Apply the same diagnostics to larger Transformer variants, if compute allows.
+
+Possible targets:
+
+- larger Qwen-style models
+- Llama-family models
+- other decoder-only architectures
+
+### Additional optimizers
+
+Extend comparison beyond AdamW and Muon.
+
+Potential candidates:
+
+- Shampoo
+- K-FAC
+- Sophia
+- Lion
+- other matrix-aware or curvature-aware optimizers
+
+### Better controls
+
+Add controls such as:
+
+- randomized checkpoints
+- shuffled activations
+- null baselines
+- frozen-model baselines
+- hyperparameter sweeps
+
+### Component matching improvements
+
+Improve checkpoint-to-checkpoint component matching with more robust similarity metrics and uncertainty estimates.
+
+### Cleaner experiment runner
+
+Move from notebook-only experimentation toward a clearer command-line experiment runner.
+
+The long-term goal is to make the repository easier for others to reproduce, inspect, and extend.
 
 ---
 
-## Domain Shift Detection
+## References and related ideas
 
-Use component activations to identify:
+This project is influenced by work on:
 
-* prose
-* code
-* JSON
-* mathematical text
-* tabular data
+- Muon and matrix-aware optimization
+- singular value spectra during training
+- spectral implicit bias
+- Independent Component Analysis
+- Grassmannian geometry
+- CKA and SVCCA-style representation comparison
+- random matrix theory in deep learning
+- mechanistic interpretability and feature superposition
 
-without explicit labels.
-
----
-
-## Optimizer Geometry Research
-
-Study how:
-
-* AdamW
-* Muon
-* Shampoo
-* K-FAC
-* Sophia
-
-shape internal representation geometry.
+The repository uses these ideas as engineering tools for diagnostics, not as final proof of a mechanistic theory.
 
 ---
 
-# References
+## Status
 
-* Bernstein & Newhouse — Muon
-* Liu et al. — Understanding Muon Through Singular Value Spectra
-* Chen et al. — Spectral Implicit Bias and Lion-K
-* Fan et al. — Max-Margin Analysis of Muon
-* Hyvärinen & Oja — Independent Component Analysis
-* Edelman et al. — Geometry of the Grassmann Manifold
-* Kornblith et al. — CKA
-* Raghu et al. — SVCCA
-* Pennington et al. — Random Matrix Theory and Deep Learning
+**Status:** experimental engineering playground
 
----
+**Focus:** reproducible optimizer comparison, Transformer geometry diagnostics, spectral tracking, subspace drift, and activation-space analysis.
 
-**Status:** Active Research Platform
+This repository is most useful as a small, inspectable testbed for asking:
 
-**Focus:** Transformer Geometry, Representation Dynamics, Spectral Learning, and Emergent Computational Structure.
+> When AdamW and Muon train the same small Transformer, what changes inside the model?
+
